@@ -54,6 +54,30 @@ public static class Program
             }
         };
 
+        client.ReactionAdded += async (msg, _, reaction) =>
+        {
+            if (reaction.User.Value is not SocketGuildUser user || user.Id == client.CurrentUser.Id)
+                return;
+
+            var role = await RoleReact.GetReactRoleAsync(reaction);
+            if (role is null)
+                return;
+            
+            await user.AddRoleAsync(role.Value);
+        };
+
+        client.ReactionRemoved += async (msg, _, reaction) =>
+        {
+            if (reaction.User.Value is not SocketGuildUser user || user.Id == client.CurrentUser.Id)
+                return;
+
+            var role = await RoleReact.GetReactRoleAsync(reaction);
+            if (role is null)
+                return;
+            
+            await user.RemoveRoleAsync(role.Value);
+        };
+
         await client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("DISCORD_TOKEN"));
         await client.StartAsync();
         await Task.Delay(-1);
