@@ -1,3 +1,4 @@
+using System.Text;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -28,10 +29,8 @@ public class RoleReact : ModuleBase<SocketCommandContext>
         {
             MessageId = messageId,
             RoleReactions = new Dictionary<string, ulong>()
-            {
-                { reactIcon, roleId }
-            }
         };
+        existing.RoleReactions[reactIcon] = roleId;
 
         await roleReacts.FindOneAndReplaceAsync(filter, existing, new FindOneAndReplaceOptions<RoleMessage>()
         {
@@ -54,6 +53,27 @@ public class RoleReact : ModuleBase<SocketCommandContext>
         var filter = Builders<RoleMessage>.Filter.Eq(nameof(RoleMessage.MessageId), messageId);
         await roleReacts.DeleteOneAsync(filter);
         await Context.Channel.SendMessageAsync("Removed all role reactions");
+    }
+
+    [Command("list")]
+    public async Task ListAllRoleReacts(ulong messageId)
+    {
+        var roleReacts = Mongo.Database.GetCollection<RoleMessage>(RoleReactCollection);
+        var filter = Builders<RoleMessage>.Filter.Eq(nameof(RoleMessage.MessageId), messageId);
+        var existing = await (await roleReacts.FindAsync(filter)).FirstOrDefaultAsync();
+
+        if (existing == default)
+        {
+            await Context.Channel.SendMessageAsync("No react roles exist for this message");
+        }
+
+        var builder = new StringBuilder();
+        foreach (var role in existing.RoleReactions)
+        {
+            builder.AppendLine($"{Context.Guild.GetRole(role.Value).Name}: {role.Key}");
+        }
+
+        await Context.Channel.SendMessageAsync(builder.ToString());
     }
 
     public static async Task<ulong?> GetReactRoleAsync(SocketReaction reaction)
