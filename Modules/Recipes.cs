@@ -38,4 +38,34 @@ public class Recipes : ModuleBase<SocketCommandContext>
 
         await Context.Channel.SendMessageAsync($"Added new recipe called {name}");
     }
+    
+    [Command("remove")]
+    public async Task removeRecipeAsync(string name)
+    {
+        var recipes = Mongo.Database.GetCollection<Recipe>("recipes");
+
+        var findRecipeByName = await recipes.FindAsync(Builders<Recipe>.Filter.Eq(nameof(Recipe.Name), name));
+        if (!await findRecipeByName.AnyAsync())
+        {
+            await Context.Channel.SendMessageAsync($"no recipe with the name {name} exists");
+            return;
+        }
+
+        var foundrecipe = findRecipeByName.First();
+        var owneruser = Context.Guild.GetUser(Context.User.Id);
+        if (foundrecipe.AuthorId == Context.User.Id | owneruser.Roles.Any(r => r.Permissions.ManageMessages))
+        {
+            await recipes.FindOneAndDeleteAsync(name);
+            await Context.Channel.SendMessageAsync($"removed recipe called {name}");
+        }
+        else
+        {
+            await Context.Channel.SendMessageAsync($"you are not the owner of the recipe called {name} or do not have the required permissions");
+        }
+
+        
+        
+
+        
+    }
 }
