@@ -43,7 +43,13 @@ public static class Program
                             var recipe = await (await Mongo.Database.GetCollection<Recipes.Recipe>("recipes").FindAsync(filter)).FirstOrDefaultAsync();
                             if (recipe != default)
                             {
-                                await message.Channel.SendMessageAsync($"{recipe.Name} by {recipe.AuthorName}:\n{recipe.Content}");
+                                string msgText = $"{recipe.Name} by {recipe.AuthorName}:\n{recipe.Content}";
+                                if (msgText.Length > 2000)
+                                {
+                                    msgText = msgText.Substring(0, 2000);
+                                    await message.Channel.SendMessageAsync($"WARNING! Message is too long. It will be trimmed to 2000 characters. Please edit it to be shorter.");
+                                }
+                                await message.Channel.SendMessageAsync(msgText);
                             }
                             break;
                         default:
