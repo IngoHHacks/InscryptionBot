@@ -39,6 +39,15 @@ public class Recipes : ModuleBase<SocketCommandContext>
             return;
         }
 
+        string prefix = $"{name} by {Context.User.Username}#{Context.User.Discriminator}:\n";
+        int maxLength = (2000 - prefix.Length);
+
+        if (content.Length > maxLength)
+        {
+            content = content.Substring(0, maxLength);
+            Context.Channel.SendMessageAsync($"WARNING! Message is too long. It will be trimmed to 2000 characters.");
+        }
+
         await recipes.InsertOneAsync(new Recipe()
         {
             Name = name,
