@@ -11,6 +11,7 @@ public static class Program
     public static async Task Main(string[] args)
     {
         var client = new DiscordSocketClient();
+        var messageChecker = new ExcessiveMessageChecker();
 
         client.Log += static async e =>
         {
@@ -27,6 +28,9 @@ public static class Program
         {
             if (msg is not SocketUserMessage message || msg.Author.Id == client.CurrentUser.Id)
                 return;
+
+            var mcTask = new Task(() => messageChecker.CheckMessage(message));
+            mcTask.RunSynchronously();
 
             int argPos = 0;
             if (message.HasCharPrefix('%', ref argPos))
