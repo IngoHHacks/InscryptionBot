@@ -1,15 +1,16 @@
 ﻿using Discord.WebSocket;
+using InscryptionBot.Util;
 
 namespace InscryptionBot.Modules
 {
     public class ExcessiveMessageChecker
     {
-        private Dictionary<ulong, List<SocketUserMessage>> entries;
+        private LimitedDictionary<ulong, LimitedList<SocketUserMessage>> entries;
         private List<ulong> users;
 
         public ExcessiveMessageChecker()
         {
-            entries = new Dictionary<ulong, List<SocketUserMessage>>();
+            entries = new LimitedDictionary<ulong, LimitedList<SocketUserMessage>>(100);
             users = new List<ulong>();
         }
 
@@ -19,7 +20,7 @@ namespace InscryptionBot.Modules
             if (user.GuildPermissions.ManageMessages) return;
             if (!entries.ContainsKey(message.Author.Id))
             {
-                entries.Add(message.Author.Id, new List<SocketUserMessage>() { message });
+                entries.Add(message.Author.Id, new LimitedList<SocketUserMessage>(20) { message });
             }
             else
             {
@@ -27,22 +28,19 @@ namespace InscryptionBot.Modules
             }
 
             List<SocketUserMessage> messagesToCheck = entries[message.Author.Id];
-            if (messagesToCheck.Count > 100)
-            {
-                messagesToCheck.RemoveAt(0);
-            }
+
             int withLink = 0;
             int same = 0;
             int spam = 0;
             int diffChannel = 0;
-            int ateveryone = 0;
+            int atEveryone = 0;
             for (int i = messagesToCheck.Count - 1; i >= 0; i--)
             {
                 if (messagesToCheck[i].Content.Contains("https://") || messagesToCheck[i].Content.Contains("http://")) withLink++;
                 else withLink = 0;
 
-                if (messagesToCheck[i].MentionedEveryone) ateveryone++;
-                else ateveryone = 0;
+                if (messagesToCheck[i].MentionedEveryone) atEveryone++;
+                else atEveryone = 0;
 
                 if (i < messagesToCheck.Count - 1)
                 {
@@ -68,7 +66,7 @@ namespace InscryptionBot.Modules
                         await user.SetTimeOutAsync(TimeSpan.FromDays(1));
                         await LogTimeout(user, messagesToCheck, "1 day", "sending 3 same messages with link in different channels", 3);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
@@ -78,27 +76,27 @@ namespace InscryptionBot.Modules
                         await user.SetTimeOutAsync(TimeSpan.FromHours(8));
                         await LogTimeout(user, messagesToCheck, "8 hours", "sending 5 same messages with link", 5);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
-                if (ateveryone >= 1 && withLink >= 1)
+                if (atEveryone >= 1 && withLink >= 1)
                 {
                     var task = new Task(async () => {
                         await user.SetTimeOutAsync(TimeSpan.FromHours(8));
                         await LogTimeout(user, messagesToCheck, "8 hours", "sending a message mentioning everyone with a link", 1);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
-                if (ateveryone >= 2)
+                if (atEveryone >= 2)
                 {
                     var task = new Task(async () => {
                         await user.SetTimeOutAsync(TimeSpan.FromHours(1));
                         await LogTimeout(user, messagesToCheck, "1 hour", "sending 2 messages mentioning everyone", 2);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
@@ -107,7 +105,7 @@ namespace InscryptionBot.Modules
                         await user.SetTimeOutAsync(TimeSpan.FromHours(1));
                         await LogTimeout(user, messagesToCheck, "1 hour", "sending 10 same messages", 10);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
@@ -117,7 +115,7 @@ namespace InscryptionBot.Modules
                         await user.SetTimeOutAsync(TimeSpan.FromHours(1));
                         await LogTimeout(user, messagesToCheck, "1 hour", "sending 10 messages fast", 10);
                     });
-                    entries[message.Author.Id] = new List<SocketUserMessage>();
+                    entries[message.Author.Id] = new LimitedList<SocketUserMessage>(20);
                     task.Start();
                     break;
                 }
